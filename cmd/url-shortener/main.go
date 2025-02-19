@@ -1,8 +1,10 @@
 package main
 
 import (
+	"flag"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -14,16 +16,26 @@ import (
 )
 
 func main() {
-	conf := config.MustLoad()
+	stType := flag.String("storage-type", "", "Specify the type of storage to use")
+	flag.Parse()
+
+	if *stType == "" {
+		log.Fatalln("Argument --storage-type is required")
+	}
+
+	conf := config.MustLoad(*stType)
 
 	logger := setupLogger(conf.Env)
 
-	logger.Info("Starting service...", slog.String("env", conf.Env))
+	logger.Info("Starting service", slog.String("env", conf.Env))
 
-	storage, err := storage_factory.GetStorage(conf)
+	storage, err := storage_factory.GetStorage(*stType, conf)
 	if err != nil {
-		logger.Error("error creating storageType: ", slog.String("error", err.Error()))
+		logger.Error("Error creating storage: ", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
+
+	logger.Info("Storage started", slog.String("storage", *stType))
 
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
@@ -33,10 +45,10 @@ func main() {
 	router.Post("/url", save.New(logger, storage))
 	router.Get("/url/{alias}", redirect.New(logger, storage))
 
-	logger.Info("starting server", slog.String("address", conf.Addr))
+	logger.Info("Starting server", slog.String("address", conf.HTTPServer.Addr))
 
 	srv := &http.Server{
-		Addr:         conf.Addr,
+		Addr:         conf.HTTPServer.Addr,
 		Handler:      router,
 		ReadTimeout:  conf.HTTPServer.Timeout,
 		WriteTimeout: conf.HTTPServer.Timeout,
@@ -51,16 +63,16 @@ func main() {
 }
 
 func setupLogger(envType string) *slog.Logger {
-	var log *slog.Logger
+	var logger *slog.Logger
 
 	switch envType {
 	case env.EnvLocal:
-		log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	case env.EnvDev:
-		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	case env.EnvProd:
-		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	}
 
-	return log
+	return logger
 }

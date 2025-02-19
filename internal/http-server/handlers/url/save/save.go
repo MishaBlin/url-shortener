@@ -28,9 +28,9 @@ type URLSaver interface {
 
 const aliasLength = 10
 
-func New(log *slog.Logger, saver URLSaver) http.HandlerFunc {
+func New(logger *slog.Logger, saver URLSaver) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log = log.With(slog.String("request_id", middleware.GetReqID(r.Context())))
+		log := logger.With(slog.String("request_id", middleware.GetReqID(r.Context())))
 		var req Request
 
 		err := render.DecodeJSON(r.Body, &req)

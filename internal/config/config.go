@@ -2,78 +2,66 @@ package config
 
 import (
 	"errors"
-	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/caarlos0/env/v6"
 	"log"
-	"os"
 	"time"
+	"url-service/internal/constants/storageType"
 )
 
 type Config struct {
-	Env         string `yaml:"env" env-required:"true"`
-	StorageType string `yaml:"storage_type" env-required:"true"`
-	Database    `yaml:"db_config"`
-	HTTPServer  `yaml:"http_server"`
+	Env        string `env:"ENV,required"`
+	Database   Database
+	HTTPServer HTTPServer
 }
 
 type Database struct {
-	DBHost     string `yaml:"db_host"`
-	DBUser     string `yaml:"db_user"`
-	DBPort     string `yaml:"db_port"`
-	DBName     string `yaml:"db_name"`
-	DBPassword string `yaml:"db_password"`
-	DBssl      string `yaml:"db_ssl"`
+	DBHost     string `env:"DB_HOST"`
+	DBUser     string `env:"DB_USER"`
+	DBPort     string `env:"DB_PORT"`
+	DBName     string `env:"DB_NAME"`
+	DBPassword string `env:"DB_PASSWORD"`
+	DBssl      string `env:"DB_SSL"`
 }
 
 type HTTPServer struct {
-	Addr        string        `yaml:"address" env-default:"localhost:8080"`
-	Timeout     time.Duration `yaml:"timeout" env-default:"5s"`
-	IdleTimeout time.Duration `yaml:"idle_timeout" env-default:"10s"`
+	Addr        string        `env:"HTTP_ADDRESS" envDefault:"0.0.0.0:8080"`
+	Timeout     time.Duration `env:"HTTP_TIMEOUT" envDefault:"5s"`
+	IdleTimeout time.Duration `env:"HTTP_IDLE_TIMEOUT" envDefault:"10s"`
 }
 
-func MustLoad() *Config {
-	configPath := os.Getenv("CONFIG_PATH")
-	if configPath == "" {
-		log.Fatal("CONFIG_PATH environment variable not set")
-	}
-
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		log.Fatalf("Config file does not exist: %s", configPath)
-	}
-
+func MustLoad(stType string) *Config {
 	var config Config
-
-	if err := cleanenv.ReadConfig(configPath, &config); err != nil {
-		log.Fatal(err)
+	if err := env.Parse(&config); err != nil {
+		log.Fatal("Failed to parse environment variables: ", err)
 	}
 
-	if err := config.validate(); err != nil {
+	if err := config.validate(stType); err != nil {
 		log.Fatal(err)
 	}
 
 	return &config
 }
 
-func (c *Config) validate() error {
-	if c.StorageType == "postgres" {
-		if c.DBHost == "" {
-			return errors.New("db_host is required for postgres storageType")
+func (c *Config) validate(stType string) error {
+	if stType == storageType.Postgres {
+		if c.Database.DBHost == "" {
+			return errors.New("DB_HOST is required for postgres storageType")
 		}
-		if c.DBUser == "" {
-			return errors.New("db_user is required for postgres storageType")
+		if c.Database.DBUser == "" {
+			return errors.New("DB_USER is required for postgres storageType")
 		}
-		if c.DBPort == "" {
-			return errors.New("db_port is required for postgres storageType")
+		if c.Database.DBPort == "" {
+			return errors.New("DB_PORT is required for postgres storageType")
 		}
-		if c.DBName == "" {
-			return errors.New("db_name is required for postgres storageType")
+		if c.Database.DBName == "" {
+			return errors.New("DB_NAME is required for postgres storageType")
 		}
-		if c.DBPassword == "" {
-			return errors.New("db_password is required for postgres storageType")
+		if c.Database.DBPassword == "" {
+			return errors.New("DB_PASSWORD is required for postgres storageType")
 		}
-		if c.DBssl == "" {
-			return errors.New("db_ssl is required for postgres storageType")
+		if c.Database.DBssl == "" {
+			return errors.New("DB_SSL is required for postgres storageType")
 		}
 	}
-
 	return nil
 }

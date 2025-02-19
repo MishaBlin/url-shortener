@@ -18,7 +18,7 @@ type URLGetter interface {
 
 func New(log *slog.Logger, urlGetter URLGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log = log.With(slog.String("request_id", middleware.GetReqID(r.Context())))
+		log := log.With(slog.String("request_id", middleware.GetReqID(r.Context())))
 
 		alias := chi.URLParam(r, "alias")
 

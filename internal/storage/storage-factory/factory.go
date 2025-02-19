@@ -9,16 +9,16 @@ import (
 	"url-service/internal/storage/postgres"
 )
 
-func GetStorage(conf *config.Config) (storage.Storage, error) {
-	switch conf.StorageType {
+func GetStorage(stType string, conf *config.Config) (storage.Storage, error) {
+	switch stType {
 	case storageType.Postgres:
 		connectionString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-			conf.DBHost,
-			conf.DBPort,
-			conf.DBUser,
-			conf.DBPassword,
-			conf.DBName,
-			conf.DBssl)
+			conf.Database.DBHost,
+			conf.Database.DBPort,
+			conf.Database.DBUser,
+			conf.Database.DBPassword,
+			conf.Database.DBName,
+			conf.Database.DBssl)
 
 		newStorage, err := postgres.NewPostgres(connectionString)
 		if err != nil {
@@ -34,6 +34,6 @@ func GetStorage(conf *config.Config) (storage.Storage, error) {
 		return newStorage, nil
 
 	default:
-		return nil, fmt.Errorf("unknown storageType type: %s", conf.StorageType)
+		return nil, fmt.Errorf("unknown storageType type: %s", stType)
 	}
 }
