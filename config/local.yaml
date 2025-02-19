@@ -1,0 +1,13 @@
+env: "local" # "local" | "dev" | "prod"
+storage_type: "memory" # "postgres" | "memory"
+db_config:
+  db_host: "localhost"
+  db_user: "postgres"
+  db_port: "5432"
+  db_password: "admin"
+  db_name: "url-shortener"
+  db_ssl: "disable"
+http_server:
+  address: "localhost:8080"
+  timeout: 5s
+  idle_timeout: 10s
